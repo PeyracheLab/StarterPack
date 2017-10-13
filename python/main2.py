@@ -64,7 +64,7 @@ my_wake = nts.IntervalSet(start = [5], end = [10], time_units = 's')
 # What are the spike that occurs during rem sleep?
 spike_during_rem = my_spike.restrict(my_rem)
 # What is the value of the eeg during wake?
-eeg_during wake = my_eeg.restrict(my_wake)
+eeg_during_wake = my_eeg.restrict(my_wake)
 # What is the value of the channels during both wake and rem
 wake_and_rem = my_wake.union(my_rem)
 channels_wake_rem = my_channels.restrict(wake_and_rem)
