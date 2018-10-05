@@ -180,7 +180,7 @@ my_data = my_data[~my_data.isnull()['angle'].values]
 tuning_curve = np.zeros(60)
 # the tuning curve is the mean firing rate per angular bins
 # First step is to define the angular bins
-angular_bins = np.linspace(0, 2*np.pi+0.001, 61)
+angular_bins = np.linspace(0, 2*np.pi, 61)
 # Check your variable; it goes from 0 to 2pi plus a small value for border effect
 # It's the border of your bins, therefore you will have 61 - 1 = 60 points
 # we can loop trough the angular bins and search for points in my_data that falls in this angular interval
