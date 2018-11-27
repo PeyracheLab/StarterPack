@@ -31,7 +31,7 @@ spikes,shank 	= loadSpikeData(data_directory+'Mouse12-120806_SpikeData.mat', sha
 my_thalamus_neuron_index = list(spikes.keys())
 hd_neuron_index = loadHDCellInfo(data_directory+'Mouse12-120806_HDCells.mat', my_thalamus_neuron_index)
 hd_spikes = {}
-for neuron in hd_neuron_index:
+for neuron in my_thalamus_neuron_index[hd_neuron_index]:
 	hd_spikes[neuron] = spikes[neuron]
 
 wake_ep 		= loadEpoch(data_directory, 'wake')
