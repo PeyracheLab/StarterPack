@@ -28,7 +28,7 @@ files 			= os.listdir(data_directory)
 generalinfo 	= scipy.io.loadmat(data_directory+'Mouse12-120806_GeneralInfo.mat')
 shankStructure 	= loadShankStructure(generalinfo)
 spikes,shank 	= loadSpikeData(data_directory+'Mouse12-120806_SpikeData.mat', shankStructure['thalamus'])
-my_thalamus_neuron_index = list(spikes.keys())
+my_thalamus_neuron_index = np.array(list(spikes.keys()))
 hd_neuron_index = loadHDCellInfo(data_directory+'Mouse12-120806_HDCells.mat', my_thalamus_neuron_index)
 hd_spikes = {}
 for neuron in my_thalamus_neuron_index[hd_neuron_index]:
