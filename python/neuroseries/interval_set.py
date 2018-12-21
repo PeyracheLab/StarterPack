@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 from warnings import warn
-from .time_series import TimeUnits, Range, as_method, store
+from .time_series import TimeUnits, Range
 
 
 # noinspection PyAbstractClass
@@ -89,9 +89,8 @@ class IntervalSet(pd.DataFrame):
         Time span of the interval set.
 
         :return:  an IntervalSet with a single interval encompassing the whole IntervalSet
-        @G.Viejo : bug here, should index both self with iloc otherwise bug in some case        
         """
-        s = self['start'].iloc[0]
+        s = self['start'][0]
         e = self['end'].iloc[-1]
         return IntervalSet(s, e)
 
@@ -199,10 +198,10 @@ class IntervalSet(pd.DataFrame):
         :param tsd: the tsd to be binned
         :return: an array with the interval index labels for each time stamp (NaN) for timestamps not in
         IntervalSet.
-        @GVIEJO : CHANGED np.Int64 to np.float64
-        """        
+        """
         bins = self.values.ravel()
-        ix = np.array(pd.cut(tsd.index, bins, labels=np.arange(len(bins) - 1, dtype=np.float64)))                
+        # ix = np.array(pd.cut(tsd.index, bins, labels=np.arange(len(bins) - 1, dtype=np.int64)))
+        ix = np.array(pd.cut(tsd.index, bins, labels=np.arange(len(bins) - 1, dtype=np.float64)))
         ix[np.floor(ix / 2) * 2 != ix] = np.NaN
         ix = np.floor(ix/2)
         return ix
@@ -217,26 +216,9 @@ class IntervalSet(pd.DataFrame):
         :type time_units: str
         :return: a copied IntervalSet with the dropped intervals
         :rtype: neuroseries.interval_set.IntervalSet
-        @G VIEJO : Changed Int to float64
         """
-        threshold = TimeUnits.format_timestamps(np.array((threshold,), dtype=np.float64).ravel(), time_units)[0]
-        return self.ix[(self['end']-self['start']) > threshold]
-
-    def drop_long_intervals(self, threshold, time_units=None):
-        """
-        Drops the long intervals in the interval set.
-        ADDED BY G Viejo, 28/08/2017
-        :param threshold: time threshold for "long" intervals
-        :type threshold: numeric
-        :param time_units: the time units for the threshold
-        :type time_units: str
-        :return: a copied IntervalSet with the dropped intervals
-        :rtype: neuroseries.interval_set.IntervalSet
-        @G VIEJO : Changed Int to float64
-        """
-        threshold = TimeUnits.format_timestamps(np.array((threshold,), dtype=np.float64).ravel(), time_units)[0]
-        return self.ix[(self['end']-self['start']) < threshold]
-
+        threshold = TimeUnits.format_timestamps(np.array((threshold,), dtype=np.int64).ravel(), time_units)[0]
+        return self.loc[(self['end']-self['start']) > threshold]
 
     def as_units(self, units=None):
         """
@@ -265,6 +247,13 @@ class IntervalSet(pd.DataFrame):
         i1 = tsp.set_diff(self)
         i1 = i1.drop_short_intervals(threshold, time_units=time_units)
         return tsp.set_diff(i1)
+
+    def store(self, the_store, key, **kwargs):
+        data_to_store = pd.DataFrame(self)
+        the_store[key] = data_to_store
+        # noinspection PyProtectedMember
+        metadata = {k: getattr(self, k) for k in self._metadata}
+        the_store.put(key, data_to_store, metadata, **kwargs)
 
     @property
     def _constructor(self):
@@ -298,6 +287,3 @@ class IntervalSet(pd.DataFrame):
     # def __next__(self):
     #     n = next(self.iter_r)[1]
     #     return IntervalSet(n['start'], n['end'])
-
-
-IntervalSet.store = as_method(store)
