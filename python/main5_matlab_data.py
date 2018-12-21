@@ -22,19 +22,16 @@ from scipy.io import loadmat
 from pylab import *
 
 # first we define a string for the data directory
-data_directory = '../data_matlab/'
-files = os.listdir(data_directory) 
-for f in files:
-	print(f)
+data_directory = '../data_matlab/Mouse12-120806'
 
 # All files that have a .mat extension are data that have been saved with Matlab
 # At some point, data files should be saved to be easily compatible for matlab and python
 # But those are not
-# Except for the file called MouseID_generalInfo.mat, you should use the Wrappers provided in functions.py
+# Except for the file called GeneralInfo.mat, you should use the Wrappers provided in functions.py
 
 # First we load general info about the session recording
 # We need the scipy library which is another scientific library and the io.loadmat function
-generalinfo = loadmat(data_directory+'Mouse12-120806_GeneralInfo.mat')
+generalinfo = loadmat(data_directory+'/Analysis/GeneralInfo.mat')
 
 # Type your variable in your terminal and observe the results
 generalinfo
@@ -69,7 +66,7 @@ shankStructure['thalamus']
 from wrappers import loadSpikeData
 # and we want only the spikes from the thalamus
 # So you need to pass the shankStructure of the thalamus as an argument of the function 
-spikes,shank = loadSpikeData(data_directory+'Mouse12-120806_SpikeData.mat', shankStructure['thalamus'])
+spikes,shank = loadSpikeData(data_directory, shankStructure['thalamus'])
 # To acces one neuron:
 spikes[0]
 # It returns a Ts object with the time occurence of spikes on the left column and NaN in the right columns
@@ -82,7 +79,7 @@ spikes[0]
 my_thalamus_neuron_index = list(spikes.keys())
 # Now you can call the function to load HD info 
 from wrappers import loadHDCellInfo
-hd_neuron_index = loadHDCellInfo(data_directory+'Mouse12-120806_HDCells.mat', my_thalamus_neuron_index)
+hd_neuron_index = loadHDCellInfo(data_directory+'/Analysis/HDCells.mat', my_thalamus_neuron_index)
 # You have now a new array of neuron index
 # You can now separate the thalamic neurons and the head-direction thalamic neurons
 # First you declare a new dictionnary
@@ -102,9 +99,6 @@ from wrappers import loadEpoch
 # You need to specify the type of epoch you want to load
 # Possibles inputs are ['wake', 'sleep', 'sws', 'rem']
 wake_ep 		= loadEpoch(data_directory, 'wake')
-sleep_ep 		= loadEpoch(data_directory, 'sleep')
-sws_ep 			= loadEpoch(data_directory, 'sws')
-rem_ep 			= loadEpoch(data_directory, 'rem')
 # The function will automaticaly search for the rigth file
 # You can check your variables by typing them
 
@@ -112,7 +106,7 @@ rem_ep 			= loadEpoch(data_directory, 'rem')
 # Next step is to load the angular value at each time steps
 # We need to load Mouse12-120806_PosHD.txt which is a text file
 # We can use the function genfromtxt of numpy that load a simple text file
-data = np.genfromtxt(data_directory+'Mouse12-120806_PosHD.txt')
+data = np.genfromtxt('../data_matlab/Mouse12-120806/Mouse12-120806_PosHD.txt')
 # Check your variable by typing it
 # It's an array, we can check the dimension by typing :
 data.shape
@@ -135,7 +129,7 @@ show()
 # The process of making a tuning curve has been covered in main3_tuningcurves.py
 # So here we are gonna define a function that will be looped over each HD neurons
 
-def computeAngularTuningCurve(spike_ts, angle_tsd, nb_bins = 30, frequency = 30):
+def computeAngularTuningCurve(spike_ts, angle_tsd, nb_bins = 60, frequency = 39.065):
 	angle_spike = angle_tsd.realign(spike_ts)
 	bins = np.linspace(0, 2*np.pi, nb_bins)
 	spike_count, bin_edges = np.histogram(angle_spike, bins)
