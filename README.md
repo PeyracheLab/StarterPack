@@ -3,13 +3,13 @@
 - This package is intended for the Peyrache Lab internal usage. 
 - Scripts should be read and tested in your favorite python environment in the following order:
 
-1. [main1_basics.py](https://github.com/PeyracheLab/StarterPack/blob/master/python/main1_basics.py)
-2. [main2_neuroseries](https://github.com/PeyracheLab/StarterPack/blob/master/python/main2_neuroseries.py)
-3. [main3_tuningcurves](https://github.com/PeyracheLab/StarterPack/blob/master/python/main3_tuningcurves.py)
-4. [main4_raw_data](https://github.com/PeyracheLab/StarterPack/blob/master/python/main4_raw_data.py)
-5. [main5_matlab_data](https://github.com/PeyracheLab/StarterPack/blob/master/python/main5_matlab_data.py)
-6. [main6_autocorr](https://github.com/PeyracheLab/StarterPack/blob/master/python/main6_autocorr.py)
-7. [main7_replay](https://github.com/PeyracheLab/StarterPack/blob/master/python/main7_replay.py)
+1. [main1_basics](https://github.com/PeyracheLab/StarterPack/blob/master/python/main1_basics.py) - *Nice and gentle walktrough of python, numpy and matplotlib.*
+2. [main2_neuroseries](https://github.com/PeyracheLab/StarterPack/blob/master/python/main2_neuroseries.py) - *Introduction to neuroseries for handling spike times, time series and epochs.*
+3. [main3_tuningcurves](https://github.com/PeyracheLab/StarterPack/blob/master/python/main3_tuningcurves.py) - *How to make an angular tuning curve?*
+4. [main4_raw_data](https://github.com/PeyracheLab/StarterPack/blob/master/python/main4_raw_data.py) - *How to load data coming from the preprocessing pipeline (i.e. .res, .clu files)?*
+5. [main5_matlab_data](https://github.com/PeyracheLab/StarterPack/blob/master/python/main5_matlab_data.py) - *Too bad, Adrien asked you to analyse his old data saved in matlab...*
+6. [main6_autocorr](https://github.com/PeyracheLab/StarterPack/blob/master/python/main6_autocorr.py) - *How to make an auto-correlogram or cross-correlogram ?**(TODO; Test Numba)*** 
+7. [main7_replay](https://github.com/PeyracheLab/StarterPack/blob/master/python/main7_replay.py) - *How to do bayesian decoding? **(TODO)***
 
 
 
