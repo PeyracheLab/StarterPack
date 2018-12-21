@@ -20,3 +20,7 @@
 - pandas
 - matplotlib
 - [neuroseries](https://github.com/PeyracheLab/neuroseries)
+
+## Example data
+
+The example session A1110-180621 that should be saved in /StarterPack/data_raw/ can be found [here](https://www.dropbox.com/sh/cuz6x9g0ru3bqvo/AACubJBC4gseHLmBOmY7h8mVa?dl=1)
