@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
-'''
-	File name: main3.py
+'''	
 	Author: Guillaume Viejo
 	Date created: 13/10/2017    
 	Python Version: 3.5.2

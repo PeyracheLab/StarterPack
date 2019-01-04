@@ -279,6 +279,7 @@ def loadEpoch(path, epoch):
 		store 		= pd.HDFStore(new_file, 'r')
 		if '/'+epoch in store.keys():
 			ep = store[epoch]
+			store.close()
 			return nts.IntervalSet(ep)
 		else:
 			print("The file BehavEpochs.h5 does not contain the key "+epoch+"; Exiting ...")

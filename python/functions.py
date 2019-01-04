@@ -1,4 +1,5 @@
 import numpy as np
+from numba import jit
 
 '''
 Utilities functions
@@ -9,6 +10,7 @@ Feel free to add your own
 #########################################################
 # CORRELATION
 #########################################################
+@jit(nopython=True)
 def crossCorr(t1, t2, binsize, nbins):
 	''' 
 		Fast crossCorr 
