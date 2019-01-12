@@ -8,7 +8,7 @@
 3. [main3_tuningcurves](https://github.com/PeyracheLab/StarterPack/blob/master/python/main3_tuningcurves.py) - *How to make an angular tuning curve?*
 4. [main4_raw_data](https://github.com/PeyracheLab/StarterPack/blob/master/python/main4_raw_data.py) - *How to load data coming from the preprocessing pipeline (i.e. .res, .clu files)?*
 5. [main5_matlab_data](https://github.com/PeyracheLab/StarterPack/blob/master/python/main5_matlab_data.py) - *Too bad, Adrien asked you to analyse his old data saved in matlab...*
-6. [main6_autocorr](https://github.com/PeyracheLab/StarterPack/blob/master/python/main6_autocorr.py) - *How to make an auto-correlogram or cross-correlogram ?**(TODO; Test Numba)*** 
+6. [main6_autocorr](https://github.com/PeyracheLab/StarterPack/blob/master/python/main6_autocorr.py) - *How to make an auto-correlogram ?*
 7. [main7_replay](https://github.com/PeyracheLab/StarterPack/blob/master/python/main7_replay.py) - *How to do bayesian decoding? **(TODO)***
 
 
@@ -19,6 +19,7 @@
 - scipy
 - pandas
 - matplotlib
+- numba
 - [neuroseries](https://github.com/PeyracheLab/neuroseries)
 
 ## Example data
