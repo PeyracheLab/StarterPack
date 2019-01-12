@@ -14,13 +14,11 @@ The main function crossCorr is already written in StarterPack/python/functions.p
 import numpy as np
 import pandas as pd
 import neuroseries as nts
-import os
-from scipy.io import loadmat
 from pylab import *
 
 
 # First let's get some spikes
-data_directory = '../data_raw2/A1110-180621'
+data_directory = '../data_raw/A1110-180621'
 from wrappers import loadSpikeData
 spikes, shank = loadSpikeData(data_directory)
 
