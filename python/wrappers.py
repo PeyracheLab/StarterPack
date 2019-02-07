@@ -371,6 +371,30 @@ def loadPosition(path, file, ep = None, names = ['x', 'y', 'ry', 'rx', 'rz']):
 		position = position.restrict(ep)
 	return position
 
+def loadTTLPulse(path, n_channels = 2, fs = 20000, file = 'analogin.dat'):
+	if not os.path.exists(path):
+		print("The path "+path+" doesn't exist; Exiting ...")
+		sys.exit()		
+	files = os.listdir(path)
+	if 'analogin.dat' not in files:
+		print("Couldn't find the analogin.dat file; Exiting ...")
+
+	new_file = os.path.join(path, 'analogin.dat')
+	f = open(new_file, 'rb')
+	startoffile = f.seek(0, 0)
+	endoffile = f.seek(0, 2)
+	bytes_size = 2		
+	n_samples = int((endoffile-startoffile)/n_channels/bytes_size)
+	duration = n_samples/fs
+	interval = 1/fs
+	f.close()
+	with open(new_file, 'rb') as f:
+		data = np.fromfile(f, np.uint16).reshape((n_samples, n_channels))
+	timestep = np.arange(0, len(data))/frequency
+	print("Assuming two channels here and taking the second one")
+	return pd.Series(index = timestep, data = data[:,1])
+
+
 ##########################################################################################################
 # TODO
 ##########################################################################################################
