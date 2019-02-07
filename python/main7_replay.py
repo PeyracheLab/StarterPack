@@ -9,7 +9,6 @@ This scripts shows how to do bayesian decoding during wake
 It can then be applied during sleep to search for replay
 
 Here I will use the data from A110-180621 
-without considerations of whether it's hd or not.
 
 The data should be found in StarterPack/data_raw/A1110-180621/
 
