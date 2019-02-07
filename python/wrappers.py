@@ -390,7 +390,7 @@ def loadTTLPulse(path, n_channels = 2, fs = 20000, file = 'analogin.dat'):
 	f.close()
 	with open(new_file, 'rb') as f:
 		data = np.fromfile(f, np.uint16).reshape((n_samples, n_channels))
-	timestep = np.arange(0, len(data))/frequency
+	timestep = np.arange(0, len(data))/fs
 	print("Assuming two channels here and taking the second one")
 	return pd.Series(index = timestep, data = data[:,1])
 
