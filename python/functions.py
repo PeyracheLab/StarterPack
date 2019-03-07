@@ -1,5 +1,5 @@
 import numpy as np
-from numba import jit
+# from numba import jit
 import pandas as pd
 import neuroseries as nts
 import sys
@@ -13,7 +13,7 @@ Feel free to add your own
 #########################################################
 # CORRELATION
 #########################################################
-@jit(nopython=True)
+# @jit(nopython=True)
 def crossCorr(t1, t2, binsize, nbins):
 	''' 
 		Fast crossCorr 
@@ -102,6 +102,28 @@ def xcrossCorr_fast(t1, t2, binsize, nbins, nbiter, jitter, confInt):
 	HeS 			= np.NaN	
 	return (H0, Hm, HeI, HeS, Hstd, times)	
 
+def compute_AutoCorrs(spks, ep, binsize = 5, nbins = 400):
+	# First let's prepare a pandas dataframe to receive the data
+	times = np.arange(0, binsize*(nbins+1), binsize) - (nbins*binsize)/2	
+	autocorrs = pd.DataFrame(index = times, columns = np.arange(len(spks)))
+	firing_rates = pd.Series(index = np.arange(len(spks)))
+
+	# Now we can iterate over the dictionnary of spikes
+	for i in spks:
+		# First we extract the time of spikes in ms during wake
+		spk_time = spks[i].restrict(ep).as_units('ms').index.values
+		# Calling the crossCorr function
+		autocorrs[i] = crossCorr(spk_time, spk_time, binsize, nbins)
+		# Computing the mean firing rate
+		firing_rates[i] = len(spk_time)/ep.tot_length('s')
+
+	# We can divide the autocorrs by the firing_rates
+	autocorrs = autocorrs / firing_rates
+
+	# And don't forget to replace the 0 ms for 0
+	autocorrs.loc[0] = 0.0
+	return autocorrs, firing_rates
+
 #########################################################
 # VARIOUS
 #########################################################
@@ -111,15 +133,14 @@ def computeAngularTuningCurves(spikes, angle, ep, nb_bins = 180, frequency = 120
 	tuning_curves 	= pd.DataFrame(index = idx, columns = np.arange(len(spikes)))	
 	angle 			= angle.restrict(ep)
 	# Smoothing the angle here
-	tmp 			= pd.Series(index = angle.index.values, data = np.unwrap(angle.values))
-	tmp2 			= tmp.rolling(window=50,win_type='gaussian',center=True,min_periods=1).mean(std=10.0)
-	angle			= nts.Tsd(tmp2%(2*np.pi))
+	# tmp 			= pd.Series(index = angle.index.values, data = np.unwrap(angle.values))
+	# tmp2 			= tmp.rolling(window=50,win_type='gaussian',center=True,min_periods=1).mean(std=10.0)
+	# angle			= nts.Tsd(tmp2%(2*np.pi))
 	for k in spikes:
 		spks 			= spikes[k]
-		true_ep 		= nts.IntervalSet(start = np.maximum(angle.index[0], spks.index[0]), 
-									end = np.minimum(angle.index[-1], spks.index[-1]))		
-		spks 			= spks.restrict(true_ep)	
-		angle_spike 	= angle.restrict(true_ep).realign(spks)
+		# true_ep 		= nts.IntervalSet(start = np.maximum(angle.index[0], spks.index[0]), end = np.minimum(angle.index[-1], spks.index[-1]))		
+		spks 			= spks.restrict(ep)	
+		angle_spike 	= angle.restrict(ep).realign(spks)
 		spike_count, bin_edges = np.histogram(angle_spike, bins)
 		occupancy, _ 	= np.histogram(angle, bins)
 		spike_count 	= spike_count/occupancy		
@@ -182,3 +203,54 @@ def decodeHD(tuning_curves, spikes, ep, bin_size = 200, px = None):
 	proba_angle = proba_angle.astype('float')		
 	decoded = nts.Tsd(t = proba_angle.index.values, d = proba_angle.idxmax(1).values, time_units = 'ms')
 	return decoded, proba_angle
+
+def computePlaceFields(spikes, position, ep, nb_bins = 100, frequency = 120.0):
+	place_fields = {}
+	position_tsd = position.restrict(ep)
+	xpos = position_tsd.iloc[:,0]
+	ypos = position_tsd.iloc[:,1]
+	xbins = np.linspace(xpos.min(), xpos.max()+1e-6, nb_bins+1)
+	ybins = np.linspace(ypos.min(), ypos.max()+1e-6, nb_bins+1)	
+	for n in spikes:
+		position_spike = position_tsd.realign(spikes[n].restrict(ep))
+		spike_count,_,_ = np.histogram2d(position_spike.iloc[:,1].values, position_spike.iloc[:,0].values, [ybins,xbins])
+		occupancy, _, _ = np.histogram2d(ypos, xpos, [ybins,xbins])
+		mean_spike_count = spike_count/(occupancy+1)
+		place_field = mean_spike_count*frequency    
+		place_fields[n] = pd.DataFrame(index = ybins[0:-1][::-1],columns = xbins[0:-1], data = place_field)
+		
+	extent = (xbins[0], xbins[-1], ybins[0], ybins[-1]) # USEFUL FOR MATPLOTLIB
+	return place_fields, extent
+
+def computeOccupancy(position_tsd, nb_bins = 100):
+    xpos = position_tsd.iloc[:,0]
+    ypos = position_tsd.iloc[:,1]    
+    xbins = np.linspace(xpos.min(), xpos.max()+1e-6, nb_bins+1)
+    ybins = np.linspace(ypos.min(), ypos.max()+1e-6, nb_bins+1)
+    occupancy, _, _ = np.histogram2d(ypos, xpos, [ybins,xbins])
+    return occupancy
+
+def computeAngularVelocityTuningCurves(spikes, angle, ep, nb_bins = 20, frequency = 120.0):
+	tmp 			= pd.Series(index = angle.index.values, data = np.unwrap(angle.values))	
+	tmp2 			= tmp.rolling(window=100,win_type='gaussian',center=True,min_periods=1).mean(std=20.0)
+	time_bins		= np.arange(tmp.index[0], tmp.index[-1]+100000, 100000) # assuming microseconds
+	index 			= np.digitize(tmp2.index.values, time_bins)
+	tmp3 			= tmp2.groupby(index).mean()
+	tmp3.index 		= time_bins[np.unique(index)-1]+50000
+	tmp3 			= nts.Tsd(tmp3)
+	tmp4			= np.diff(tmp3.values)/np.diff(tmp3.as_units('s').index.values)
+	velocity 		= nts.Tsd(t=tmp3.index.values[1:], d = tmp4)
+	velocity 		= velocity.restrict(ep)
+	bins 			= np.linspace(velocity.min(), velocity.max()+0.00001, nb_bins)
+	idx 			= bins[0:-1]+np.diff(bins)/2
+	velo_curves		= pd.DataFrame(index = idx, columns = np.arange(len(spikes)))
+	for k in spikes:
+		spks 		= spikes[k]
+		spks 		= spks.restrict(ep)
+		speed_spike = velocity.realign(spks)
+		spike_count, bin_edges = np.histogram(speed_spike, bins)
+		occupancy, _ = np.histogram(velocity, bins)
+		spike_count = spike_count/(occupancy+1)
+		velo_curves[k] = spike_count*frequency
+
+	return velo_curves
