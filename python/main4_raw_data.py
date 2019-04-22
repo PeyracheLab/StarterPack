@@ -44,10 +44,9 @@ data_directory = '../data_raw/KA28-190405'
 # The data were too big to live in github.
 # So i put them on dropbox.
 # The link is :
-url = "https://www.dropbox.com/sh/cuz6x9g0ru3bqvo/AACubJBC4gseHLmBOmY7h8mVa?dl=1"
+url = "https://www.dropbox.com/sh/8bu167zgk6u9r1r/AAAdiK1zW6r_Pil78Ger6SlVa?dl=1"
 # It's best to do it manually
-# Just copy all the file you get from the url to the data_directory StarterPack/data_raw/A1110-180621/
-
+# Just extract the zip file in the folder StarterPack/data_raw/
 
 
 # To list the files in the directory, you use the os package (for Operating System) and the listdir function
