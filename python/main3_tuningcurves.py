@@ -125,15 +125,14 @@ place_field = pd.DataFrame(index = xbins[0:-1]+np.diff(xbins)/2,
 # And plot everything
 figure()
 subplot(211)
+
 plot(position['x'], position['y'], alpha = 0.5)
 scatter(position_spike['x'], position_spike['y'], color = 'red', alpha = 0.5, edgecolor = None)
 for i in xbins: axvline(i)
 for i in ybins: axhline(i)
 xlim(xbins[0], xbins[-1])
 ylim(ybins[0], ybins[-1])
-
 subplot(212)
 imshow(place_field, origin = 'lower', aspect= 'auto')
-# imshow(spike_count2, origin = 'lower', aspect= 'auto')
 
 show()

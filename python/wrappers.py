@@ -152,6 +152,65 @@ def loadXML(path):
 		shank_to_channel[i] = np.sort([int(child.firstChild.data) for child in groups[i].getElementsByTagName('channel')])
 	return int(nChannels), int(fs), shank_to_channel
 
+def downsampleDatFile(path, n_channels, fs):
+	"""
+	downsample .dat file to .eeg 1/16 (20000 -> 1250 Hz)
+	
+	Since .dat file can be very big, the strategy is to load one channel at the time,
+	downsample it, and free the memory.
+
+	Args:
+		path: string
+		n_channel: int
+		fs: int
+	Return: 
+		none
+	"""	
+	if not os.path.exists(path):
+		print("The path "+path+" doesn't exist; Exiting ...")
+		sys.exit()
+	listdir 	= os.listdir(path)
+	datfile 	= [f for f in listdir if f.endswith('.dat')]
+	if not len(datfile):
+		print("Folder contains no xml files; Exiting ...")
+		sys.exit()
+	new_path = os.path.join(path, datfile[0])
+
+	f 			= open(new_path, 'rb')
+	startoffile = f.seek(0, 0)
+	endoffile 	= f.seek(0, 2)
+	bytes_size 	= 2
+	n_samples 	= int((endoffile-startoffile)/n_channels/bytes_size)
+	duration 	= n_samples/fs
+	f.close()
+
+	chunksize 	= 100000
+	eeg 		= np.zeros((int(n_samples/16),n_channels))
+
+	for n in range(n_channels):		
+		# Loading
+		rawchannel = np.zeros(n_samples, np.int16)
+		count = 0
+		while count < n_samples:
+			f 			= open(new_path, 'rb')
+			seekstart 	= count*n_channels*bytes_size
+			f.seek(seekstart)
+			block 		= np.fromfile(f, np.int16, n_channels*np.minimum(chunksize, n_samples-count))
+			f.close()
+			block 		= block.reshape(np.minimum(chunksize, n_samples-count), n_channels)
+			rawchannel[count:count+np.minimum(chunksize, n_samples-count)] = np.copy(block[:,n])
+			count 		+= chunksize
+		# Downsampling		
+		eeg[:,n] 	= scipy.signal.resample_poly(rawchannel, 1, 16)
+		del rawchannel		
+	
+	# Saving
+	eeg_path 	= os.path.join(path, os.path.splitext(datfile[0])[0]+'.eeg')
+	with open(eeg_path, 'wb') as f:
+		eeg.astype('int16').tofile(f)
+		
+	return
+
 def makeEpochs(path, order, file = None, start=None, end = None, time_units = 's'):
 	"""
 	The pre-processing pipeline should spit out a csv file containing all the successive epoch of sleep/wake
@@ -378,7 +437,7 @@ def loadEpoch(path, epoch, episodes = None):
 					stop = np.where(index == -1)[0]
 					return nts.IntervalSet(start, stop, time_units = 's', expect_fix=True).drop_short_intervals(0.0)
 
-def loadPosition(path, events, episodes, n_ttl_channels = 1, optitrack_ch = None, names = ['ry', 'rx', 'rz', 'x', 'y', 'z'], update_wake_epoch = True):
+def loadPosition(path, events = None, episodes = None, n_ttl_channels = 1, optitrack_ch = None, names = ['ry', 'rx', 'rz', 'x', 'y', 'z'], update_wake_epoch = True):
     """
     load the position contained in /Analysis/Position.h5
 
@@ -425,6 +484,7 @@ def loadTTLPulse(file, n_ttl_channels = 1, optitrack_ch = None, fs = 20000):
     	data = data[:,optitrack_ch].astype(np.int32)
     else:
     	data = data.flatten().astype(np.int32)
+
     peaks,_ = scipy.signal.find_peaks(np.diff(data), height=30000)
     timestep = np.arange(0, len(data))/fs
     # analogin = pd.Series(index = timestep, data = data)
@@ -456,7 +516,6 @@ def loadAuxiliary(path, fs = 20000):
 		if len(aux_files)==0:
 			print("Could not find "+f+'_auxiliary.dat; Exiting ...')
 			sys.exit()
-
 		accel = []
 		sample_size = []
 		for i, f in enumerate(aux_files):
@@ -485,65 +544,6 @@ def loadAuxiliary(path, fs = 20000):
 		store.close()
 		return tmp
 
-def downsampleDatFile(path, n_channels = 32, fs = 20000):
-	"""
-	downsample .dat file to .eeg 1/16 (20000 -> 1250 Hz)
-	
-	Since .dat file can be very big, the strategy is to load one channel at the time,
-	downsample it, and free the memory.
-
-	Args:
-		path: string
-		n_channel: int
-		fs: int
-	Return: 
-		none
-	"""	
-	if not os.path.exists(path):
-		print("The path "+path+" doesn't exist; Exiting ...")
-		sys.exit()
-	listdir 	= os.listdir(path)
-	datfile 	= os.path.basename(path) + '.dat'
-	if datfile not in listdir:
-		print("Folder contains no " + datfile + " file; Exiting ...")
-		sys.exit()
-
-	new_path = os.path.join(path, datfile)
-
-	f 			= open(new_path, 'rb')
-	startoffile = f.seek(0, 0)
-	endoffile 	= f.seek(0, 2)
-	bytes_size 	= 2
-	n_samples 	= int((endoffile-startoffile)/n_channels/bytes_size)
-	duration 	= n_samples/fs
-	f.close()
-
-	chunksize 	= 100000
-	eeg 		= np.zeros((int(n_samples/16),n_channels), dtype = np.int16)
-
-	for n in range(n_channels):
-		# Loading		
-		rawchannel = np.zeros(n_samples, np.int16)
-		count = 0
-		while count < n_samples:
-			f 			= open(new_path, 'rb')
-			seekstart 	= count*n_channels*bytes_size
-			f.seek(seekstart)
-			block 		= np.fromfile(f, np.int16, n_channels*np.minimum(chunksize, n_samples-count))
-			f.close()
-			block 		= block.reshape(np.minimum(chunksize, n_samples-count), n_channels)
-			rawchannel[count:count+np.minimum(chunksize, n_samples-count)] = np.copy(block[:,n])
-			count 		+= chunksize
-		# Downsampling		
-		eeg[:,n] 	= scipy.signal.resample_poly(rawchannel, 1, 16).astype(np.int16)
-		del rawchannel
-	
-	# Saving
-	eeg_path 	= os.path.join(path, os.path.splitext(datfile)[0]+'.eeg')
-	with open(eeg_path, 'wb') as f:
-		eeg.tofile(f)
-		
-	return
 
 ##########################################################################################################
 # TODO
@@ -640,4 +640,3 @@ def loadBunch_Of_LFP(path,  start, stop, n_channels=90, channel=64, frequency=12
 	elif type(channel) is list:
 		timestep = np.arange(0, len(data))/frequency		
 		return nts.TsdFrame(timestep, data[:,channel], time_units = 's')
-

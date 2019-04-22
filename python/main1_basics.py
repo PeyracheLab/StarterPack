@@ -74,9 +74,7 @@ plt.ylabel("Sinus")
 plt.title("My plot")
 # and display the figure
 plt.show()
-# no let's display the best flag in the world
-my_flag = np.atleast_2d([0.0, 0.5, 1.0])
-my_flag = np.repeat(my_flag, 10, 0)
-my_flag = np.repeat(my_flag, 5, 1)
-plt.imshow(my_flag, cmap = 'bwr')
+# no let's display a matrix
+image = np.random.rand(20,30)
+plt.imshow(image)
 plt.show()

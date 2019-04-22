@@ -133,9 +133,9 @@ def computeAngularTuningCurves(spikes, angle, ep, nb_bins = 180, frequency = 120
 	tuning_curves 	= pd.DataFrame(index = idx, columns = np.arange(len(spikes)))	
 	angle 			= angle.restrict(ep)
 	# Smoothing the angle here
-	tmp 			= pd.Series(index = angle.index.values, data = np.unwrap(angle.values))
-	tmp2 			= tmp.rolling(window=50,win_type='gaussian',center=True,min_periods=1).mean(std=10.0)
-	angle			= nts.Tsd(tmp2%(2*np.pi))
+	# tmp 			= pd.Series(index = angle.index.values, data = np.unwrap(angle.values))
+	# tmp2 			= tmp.rolling(window=50,win_type='gaussian',center=True,min_periods=1).mean(std=10.0)
+	# angle			= nts.Tsd(tmp2%(2*np.pi))
 	for k in spikes:
 		spks 			= spikes[k]
 		# true_ep 		= nts.IntervalSet(start = np.maximum(angle.index[0], spks.index[0]), end = np.minimum(angle.index[-1], spks.index[-1]))		
@@ -163,7 +163,7 @@ def findHDCells(tuning_curves):
 	tokeep = np.where(np.logical_and(cond1, cond2))[0]
 	return tokeep, stat
 
-def decodeHD(tuning_curves, spikes, ep, bin_size = 200, px = None):
+def decodeHD(tuning_curves, spikes, ep, px, bin_size = 200):
 	"""
 		See : Zhang, 1998, Interpreting Neuronal Population Activity by Reconstruction: Unified Framework With Application to Hippocampal Place Cells
 		tuning_curves: pd.DataFrame with angular position as index and columns as neuron
@@ -178,8 +178,8 @@ def decodeHD(tuning_curves, spikes, ep, bin_size = 200, px = None):
 		print("TODO, more than one epoch")
 		sys.exit()
 	
-	spike_counts = pd.DataFrame(index = bins[0:-1]+np.diff(bins)/2, columns = spikes.keys())
-	for k in spikes:
+	spike_counts = pd.DataFrame(index = bins[0:-1]+np.diff(bins)/2, columns = tuning_curves.columns)
+	for k in spike_counts.columns:
 		spks = spikes[k].restrict(ep).as_units('ms').index.values
 		spike_counts[k], _ = np.histogram(spks, bins)
 
@@ -187,12 +187,8 @@ def decodeHD(tuning_curves, spikes, ep, bin_size = 200, px = None):
 	spike_counts_array = spike_counts.values
 	proba_angle = np.zeros((spike_counts.shape[0], tuning_curves.shape[0]))
 
-	part1 = np.exp(-(bin_size/1000)*tcurves_array.sum(1))
-	if px is not None:
-		part2 = px
-	else:
-		part2 = np.ones(tuning_curves.shape[0])
-		# part2 = np.histogram(position['ry'], np.linspace(0, 2*np.pi, 61), weights = np.ones_like(position['ry'])/float(len(position['ry'])))[0]
+	part1 = np.exp(-(bin_size/1000)*tcurves_array.sum(1))	
+	part2 = px
 	
 	for i in range(len(proba_angle)):
 		part3 = np.prod(tcurves_array**spike_counts_array[i], 1)
@@ -200,7 +196,7 @@ def decodeHD(tuning_curves, spikes, ep, bin_size = 200, px = None):
 		proba_angle[i] = p/p.sum() # Normalization process here
 
 	proba_angle  = pd.DataFrame(index = spike_counts.index.values, columns = tuning_curves.index.values, data= proba_angle)	
-	proba_angle = proba_angle.astype('float')		
+	# proba_angle = proba_angle.astype('float')		
 	decoded = nts.Tsd(t = proba_angle.index.values, d = proba_angle.idxmax(1).values, time_units = 'ms')
 	return decoded, proba_angle
 

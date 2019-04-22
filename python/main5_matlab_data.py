@@ -132,7 +132,7 @@ def computeAngularTuningCurve(spike_ts, angle_tsd, nb_bins = 60, frequency = 39.
 	angle_spike = angle_tsd.realign(spike_ts)
 	bins = np.linspace(0, 2*np.pi, nb_bins)
 	spike_count, bin_edges = np.histogram(angle_spike, bins)
-	occupancy, _ = np.histogram(angle, bins)
+	occupancy, _ = np.histogram(angle_tsd, bins)
 	spike_count = spike_count/occupancy
 	tuning_curve = spike_count*frequency
 	tuning_curve = pd.Series(index = bins[0:-1]+np.diff(bins)/2, data = tuning_curve)

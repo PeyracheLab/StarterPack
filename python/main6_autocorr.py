@@ -18,13 +18,12 @@ from pylab import *
 
 
 # First let's get some spikes
-data_directory = '../data_raw/A1110-180621'
+data_directory = '../data_raw/KA28-190405'
 from wrappers import loadSpikeData
 spikes, shank = loadSpikeData(data_directory)
 
 # Let's restrict the spikes to the wake episode
-from wrappers import makeEpochs, loadEpoch
-makeEpochs(data_directory, ['sleep', 'wake', 'sleep', 'wake'], file='Epoch_TS.csv')
+from wrappers import loadEpoch
 wake_ep = loadEpoch(data_directory, 'wake')
 
 # Let's make the autocorrelogram of the first neuron
@@ -42,7 +41,7 @@ neuron_0_t = neuron_0.index.values
 # Let's say you want to compute the autocorr with 5 ms bins
 binsize = 5
 # with 200 bins
-nbins = 400
+nbins = 200
 
 # Now we can call the function crossCorr
 from functions import crossCorr
@@ -73,30 +72,9 @@ plot(autocorr_0)
 show()
 
 
-# Now let's make a function to compute all autocorrs
-def compute_AutoCorrs(spks, ep, binsize = 5, nbins = 400):
-	# First let's prepare a pandas dataframe to receive the data
-	times = np.arange(0, binsize*(nbins+1), binsize) - (nbins*binsize)/2	
-	autocorrs = pd.DataFrame(index = times, columns = np.arange(len(spikes)))
-	firing_rates = pd.Series(index = np.arange(len(spikes)))
-
-	# Now we can iterate over the dictionnary of spikes
-	for i in spks:
-		# First we extract the time of spikes in ms during wake
-		spk_time = spks[i].restrict(ep).as_units('ms').index.values
-		# Calling the crossCorr function
-		autocorrs[i] = crossCorr(spk_time, spk_time, binsize, nbins)
-		# Computing the mean firing rate
-		firing_rates[i] = len(spk_time)/wake_ep.tot_length('s')
-
-	# We can divide the autocorrs by the firing_rates
-	autocorrs = autocorrs / firing_rates
-
-	# And don't forget to replace the 0 ms for 0
-	autocorrs.loc[0] = 0.0
-	return autocorrs, firing_rates
-
+# Now let's call the function compute_AutoCorrs from functions.py
 # We can call the function
+from functions import compute_AutoCorrs
 autocorrs, firing_rates = compute_AutoCorrs(spikes, wake_ep)
 
 # Let's plot all the autocorrs
