@@ -4,103 +4,112 @@ import scipy.io
 import neuroseries as nts
 import pandas as pd
 import scipy.signal
-
+from numba import jit
 '''
 Wrappers should be able to distinguish between raw data or matlab processed data
 '''
 
 def loadSpikeData(path, index=None, fs = 20000):
-	"""
-	if the path contains a folder named /Analysis, 
-	the script will look into it to load either
-		- SpikeData.mat saved from matlab
-		- SpikeData.h5 saved from this same script
-	if not, the res and clu file will be loaded 
-	and an /Analysis folder will be created to save the data
-	Thus, the next loading of spike times will be faster
-	Notes :
-		If the frequency is not givne, it's assumed 20kH
-	Args:
-		path : string
+    """
+    if the path contains a folder named /Analysis, 
+    the script will look into it to load either
+        - SpikeData.mat saved from matlab
+        - SpikeData.h5 saved from this same script
+    if not, the res and clu file will be loaded 
+    and an /Analysis folder will be created to save the data
+    Thus, the next loading of spike times will be faster
+    Notes :
+        If the frequency is not givne, it's assumed 20kH
+    Args:
+        path : string
 
-	Returns:
-		dict, array	
-	"""	
-	if not os.path.exists(path):
-		print("The path "+path+" doesn't exist; Exiting ...")
-		sys.exit()    
-	new_path = os.path.join(path, 'Analysis/')
-	if os.path.exists(new_path):
-		new_path	= os.path.join(path, 'Analysis/')
-		files		= os.listdir(new_path)
-		if 'SpikeData.mat' in files:
-			spikedata 	= scipy.io.loadmat(new_path+'SpikeData.mat')
-			shank 		= spikedata['shank'] - 1
-			if index is None:
-				shankIndex 	= np.arange(len(shank))
-			else:
-				shankIndex 	= np.where(shank == index)[0]
-			spikes 		= {}	
-			for i in shankIndex:	
-				spikes[i] 	= nts.Ts(spikedata['S'][0][0][0][i][0][0][0][1][0][0][2], time_units = 's')
-			a 			= spikes[0].as_units('s').index.values	
-			if ((a[-1]-a[0])/60.)/60. > 20. : # VERY BAD		
-				spikes 		= {}	
-				for i in shankIndex:
-					spikes[i] 	= nts.Ts(spikedata['S'][0][0][0][i][0][0][0][1][0][0][2]*0.0001, time_units = 's')
-			return spikes, shank
-		elif 'SpikeData.h5' in files:			
-			final_path = os.path.join(new_path, 'SpikeData.h5')			
-			spikes = pd.read_hdf(final_path, mode='r')
-			# Returning a dictionnary | can be changed to return a dataframe
-			toreturn = {}
-			for i,j in spikes:
-				toreturn[j] = nts.Ts(t=spikes[(i,j)].replace(0,np.nan).dropna().index.values, time_units = 's')
-			shank = spikes.columns.get_level_values(0).values[:,np.newaxis]
-			return toreturn, shank
-			
-		else:			
-			print("Couldn't find any SpikeData file in "+new_path)
-			print("If clu and res files are present in "+path+", a SpikeData.h5 is going to be created")
+    Returns:
+        dict, array    
+    """    
+    if not os.path.exists(path):
+        print("The path "+path+" doesn't exist; Exiting ...")
+        sys.exit()    
+    new_path = os.path.join(path, 'Analysis/')
+    if os.path.exists(new_path):
+        new_path    = os.path.join(path, 'Analysis/')
+        files        = os.listdir(new_path)
+        if 'SpikeData.mat' in files:
+            spikedata     = scipy.io.loadmat(new_path+'SpikeData.mat')
+            shank         = spikedata['shank'] - 1
+            if index is None:
+                shankIndex     = np.arange(len(shank))
+            else:
+                shankIndex     = np.where(shank == index)[0]
+            spikes         = {}    
+            for i in shankIndex:    
+                spikes[i]     = nts.Ts(spikedata['S'][0][0][0][i][0][0][0][1][0][0][2], time_units = 's')
+            a             = spikes[0].as_units('s').index.values    
+            if ((a[-1]-a[0])/60.)/60. > 20. : # VERY BAD        
+                spikes         = {}    
+                for i in shankIndex:
+                    spikes[i]     = nts.Ts(spikedata['S'][0][0][0][i][0][0][0][1][0][0][2]*0.0001, time_units = 's')
+            return spikes, shank
+        elif 'SpikeData.h5' in files:            
+            final_path = os.path.join(new_path, 'SpikeData.h5')            
+            spikes = pd.read_hdf(final_path, mode='r')
+            # Returning a dictionnary | can be changed to return a dataframe
+            toreturn = {}
+            for i,j in spikes:
+                toreturn[j] = nts.Ts(t=spikes[(i,j)].replace(0,np.nan).dropna().index.values, time_units = 's')
+            shank = spikes.columns.get_level_values(0).values[:,np.newaxis]
+            return toreturn, shank
+            
+        else:            
+            print("Couldn't find any SpikeData file in "+new_path)
+            print("If clu and res files are present in "+path+", a SpikeData.h5 is going to be created")
 
-	# Creating /Analysis/ Folder here if not already present
-	if not os.path.exists(new_path): os.makedirs(new_path)
-	files = os.listdir(path)
-	clu_files 	= np.sort([f for f in files if 'clu' in f and f[0] != '.'])
-	res_files 	= np.sort([f for f in files if 'res' in f and f[0] != '.'])
-	clu1 		= np.sort([int(f.split(".")[-1]) for f in clu_files])
-	clu2 		= np.sort([int(f.split(".")[-1]) for f in res_files])
-	if len(clu_files) != len(res_files) or not (clu1 == clu2).any():
-		print("Not the same number of clu and res files in "+path+"; Exiting ...")
-		sys.exit()
-	count = 0	
-	spikes = pd.DataFrame()	
-	for i in range(len(clu_files)):
-		clu = np.genfromtxt(os.path.join(path,clu_files[i]))[1:]
-		res = np.genfromtxt(os.path.join(path,res_files[i]))
-		tmp = np.unique(clu).astype(int)		
-		idx_clu = tmp[tmp>1]
-		idx_col = np.arange(count, count+len(idx_clu))
-		for j, k in zip(idx_clu, idx_col):
-			tmp2 = pd.DataFrame(index=res[clu==j]/fs, data = k+1, columns = pd.MultiIndex.from_tuples([(i,k)]))
-			spikes = pd.concat([spikes, tmp2], axis = 1)			
-		count+=len(idx_clu)
-	spikes = spikes.fillna(0)
-	spikes = spikes.astype(np.int8)
+    # Creating /Analysis/ Folder here if not already present
+    if not os.path.exists(new_path): os.makedirs(new_path)
+    files = os.listdir(path)
+    clu_files     = np.sort([f for f in files if 'clu' in f and f[0] != '.'])
+    res_files     = np.sort([f for f in files if 'res' in f and f[0] != '.'])
+    clu1         = np.sort([int(f.split(".")[-1]) for f in clu_files])
+    clu2         = np.sort([int(f.split(".")[-1]) for f in res_files])
+    if len(clu_files) != len(res_files) or not (clu1 == clu2).any():
+        print("Not the same number of clu and res files in "+path+"; Exiting ...")
+        sys.exit()
+    count = 0    
+    spikes = []
+    for i in range(len(clu_files)):
+        clu = np.genfromtxt(os.path.join(path,clu_files[i]),dtype=np.int32)[1:]
+        if np.max(clu)>1:
+	        res = np.genfromtxt(os.path.join(path,res_files[i]))
+	        tmp = np.unique(clu).astype(int)
+	        idx_clu = tmp[tmp>1]
+	        idx_col = np.arange(count, count+len(idx_clu))	        
+	        tmp = pd.DataFrame(index = np.unique(res)/fs, 
+	        					columns = pd.MultiIndex.from_product([[i],idx_col]),
+	        					data = 0, 
+	        					dtype = np.int32)
+	        for j, k in zip(idx_clu, idx_col):
+	        	tmp.loc[res[clu==j]/fs,(i,k)] = k+1
+	        spikes.append(tmp)
+	        count+=len(idx_clu)
 
-	# Saving SpikeData.h5
-	final_path = os.path.join(new_path, 'SpikeData.h5')
-	spikes.columns.set_names(['shank', 'neuron'], inplace=True)	
-	spikes.to_hdf(final_path, key='spikes', mode='w')
+            # tmp2 = pd.DataFrame(index=res[clu==j]/fs, data = k+1, ))
+            # spikes = pd.concat([spikes, tmp2], axis = 1)            
+    spikes = pd.concat(spikes, axis = 1)
+    spikes = spikes.fillna(0)
+    spikes = spikes.astype(np.int32)
 
-	# Returning a dictionnary
-	toreturn = {}
-	for i,j in spikes:
-		toreturn[j] = nts.Ts(t=spikes[(i,j)].replace(0,np.nan).dropna().index.values, time_units = 's')
+    # Saving SpikeData.h5
+    final_path = os.path.join(new_path, 'SpikeData.h5')
+    spikes.columns.set_names(['shank', 'neuron'], inplace=True)    
+    spikes.to_hdf(final_path, key='spikes', mode='w')
 
-	shank = spikes.columns.get_level_values(0).values[:,np.newaxis]
+    # Returning a dictionnary
+    toreturn = {}
+    for i,j in spikes:
+        toreturn[j] = nts.Ts(t=spikes[(i,j)].replace(0,np.nan).dropna().index.values, time_units = 's')
 
-	return toreturn, shank
+    shank = spikes.columns.get_level_values(0).values[:,np.newaxis].flatten()
+
+    return toreturn, shank
 
 def loadXML(path):
 	"""
@@ -142,65 +151,6 @@ def loadXML(path):
 	for i in range(len(groups)):
 		shank_to_channel[i] = np.sort([int(child.firstChild.data) for child in groups[i].getElementsByTagName('channel')])
 	return int(nChannels), int(fs), shank_to_channel
-
-def downsampleDatFile(path, n_channels, fs):
-	"""
-	downsample .dat file to .eeg 1/16 (20000 -> 1250 Hz)
-	
-	Since .dat file can be very big, the strategy is to load one channel at the time,
-	downsample it, and free the memory.
-
-	Args:
-		path: string
-		n_channel: int
-		fs: int
-	Return: 
-		none
-	"""	
-	if not os.path.exists(path):
-		print("The path "+path+" doesn't exist; Exiting ...")
-		sys.exit()
-	listdir 	= os.listdir(path)
-	datfile 	= [f for f in listdir if f.endswith('.dat')]
-	if not len(datfile):
-		print("Folder contains no xml files; Exiting ...")
-		sys.exit()
-	new_path = os.path.join(path, datfile[0])
-
-	f 			= open(new_path, 'rb')
-	startoffile = f.seek(0, 0)
-	endoffile 	= f.seek(0, 2)
-	bytes_size 	= 2
-	n_samples 	= int((endoffile-startoffile)/n_channels/bytes_size)
-	duration 	= n_samples/fs
-	f.close()
-
-	chunksize 	= 100000
-	eeg 		= np.zeros((int(n_samples/16),n_channels))
-
-	for n in range(n_channels):		
-		# Loading
-		rawchannel = np.zeros(n_samples, np.int16)		
-		count = 0
-		while count < n_samples:
-			f 			= open(new_path, 'rb')
-			seekstart 	= count*n_channels*bytes_size
-			f.seek(seekstart)
-			block 		= np.fromfile(f, np.int16, n_channels*np.minimum(chunksize, n_samples-count))
-			f.close()
-			block 		= block.reshape(np.minimum(chunksize, n_samples-count), n_channels)
-			rawchannel[count:count+np.minimum(chunksize, n_samples-count)] = np.copy(block[:,n])
-			count 		+= chunksize
-		# Downsampling		
-		eeg[:,n] 	= scipy.signal.resample_poly(rawchannel, 1, 16)
-		del rawchannel		
-	
-	# Saving
-	eeg_path 	= os.path.join(path, os.path.splitext(datfile[0])[0]+'.eeg')
-	with open(eeg_path, 'wb') as f:
-		eeg.astype('int16').tofile(f)
-		
-	return
 
 def makeEpochs(path, order, file = None, start=None, end = None, time_units = 's'):
 	"""
@@ -252,7 +202,92 @@ def makeEpochs(path, order, file = None, start=None, end = None, time_units = 's
 
 	return None
 
-def loadEpoch(path, epoch):
+def makePositions(path, file_order, episodes, n_ttl_channels = 1, optitrack_ch = None, names = ['ry', 'rx', 'rz', 'x', 'y', 'z'], update_wake_epoch = True):
+    """
+    Assuming that makeEpochs has been runned and a file BehavEpochs.h5 can be 
+    found in /Analysis/, this function will look into path  for analogin file 
+    containing the TTL pulses. The position time for all events will thus be
+    updated and saved in Analysis/Position.h5.
+    BehavEpochs.h5 will although be updated to match the time between optitrack
+    and intan
+    
+    Notes:
+        The function assumes headers on the csv file of the position in the following order:
+            ['ry', 'rx', 'rz', 'x', 'y', 'z']
+    Args:
+        path: string
+        file_order: list
+        names: list
+    Return: 
+        None
+    """ 
+    if not os.path.exists(path):
+        print("The path "+path+" doesn't exist; Exiting ...")
+        sys.exit()
+    files = os.listdir(path)    
+    for f in file_order:
+        if not np.any([f+'.csv' in g for g in files]):
+            print("Could not find "+f+'.csv; Exiting ...')
+            sys.exit()    
+    new_path = os.path.join(path, 'Analysis/')
+    if not os.path.exists(new_path): os.makedirs(new_path)                
+    file_epoch = os.path.join(path, 'Analysis', 'BehavEpochs.h5')
+    if os.path.exists(file_epoch):
+        wake_ep = loadEpoch(path, 'wake')
+    else:
+    	makeEpochs(path, episodes, file = 'Epoch_TS.csv')
+    	wake_ep = loadEpoch(path, 'wake')
+    if len(wake_ep) != len(file_order):
+        print("Number of wake episodes doesn't match; Exiting...")
+        sys.exit()
+
+    frames = []
+    
+    for i, f in enumerate(file_order):
+        csv_file = os.path.join(path, "".join(s for s in files if f+'.csv' in s))
+        position = pd.read_csv(csv_file, header = [4,5], index_col = 1)
+        if 1 in position.columns:
+            position = position.drop(labels = 1, axis = 1)
+        position = position[~position.index.duplicated(keep='first')]
+        analogin_file = os.path.splitext(csv_file)[0]+'_analogin.dat'
+        if not os.path.split(analogin_file)[1] in files:
+            print("No analogin.dat file found.")
+            print("Please provide it as "+os.path.split(analogin_file)[1])
+            print("Exiting ...")
+            sys.exit()
+        else:
+            ttl = loadTTLPulse(analogin_file, n_ttl_channels, optitrack_ch)
+        
+        length = np.minimum(len(ttl), len(position))
+        ttl = ttl.iloc[0:length]
+        position = position.iloc[0:length]
+        time_offset = wake_ep.as_units('s').iloc[i,0] + ttl.index[0]
+        position.index += time_offset
+        wake_ep.iloc[i,0] = np.int64(np.maximum(wake_ep.as_units('s').iloc[i,0], position.index[0])*1e6)
+        wake_ep.iloc[i,1] = np.int64(np.minimum(wake_ep.as_units('s').iloc[i,1], position.index[-1])*1e6)
+        
+        frames.append(position)
+    
+    position = pd.concat(frames)
+    #position = nts.TsdFrame(t = position.index.values, d = position.values, time_units = 's', columns = names)
+    position.columns = names
+    position[['ry', 'rx', 'rz']] *= (np.pi/180)
+    position[['ry', 'rx', 'rz']] += 2*np.pi
+    position[['ry', 'rx', 'rz']] %= 2*np.pi
+    
+    if update_wake_epoch:
+        store = pd.HDFStore(file_epoch, 'a')
+        store['wake'] = pd.DataFrame(wake_ep)
+        store.close()
+    
+    position_file = os.path.join(path, 'Analysis', 'Position.h5')
+    store = pd.HDFStore(position_file, 'w')
+    store['position'] = position
+    store.close()
+    
+    return
+
+def loadEpoch(path, epoch, episodes = None):
 	"""
 	load the epoch contained in path	
 	If the path contains a folder analysis, the function will load either the BehavEpochs.mat or the BehavEpochs.h5
@@ -265,16 +300,18 @@ def loadEpoch(path, epoch):
 	Returns:
 		neuroseries.IntervalSet
 	"""			
-	if not os.path.exists(path):
+	if not os.path.exists(path): # Check for path
 		print("The path "+path+" doesn't exist; Exiting ...")
 		sys.exit()		
 	filepath 	= os.path.join(path, 'Analysis')
-	listdir		= os.listdir(filepath)
-	file 		= [f for f in listdir if 'BehavEpochs' in f]
-	if len(file) == 0:
-		print("Couldn't find a BehavEpochs file in "+filepath+"; Exiting ...")
-		sys.exit()
-	elif file[0] == 'BehavEpochs.h5':
+	if os.path.exists(filepath): # Check for path/Analysis/	
+		listdir		= os.listdir(filepath)
+		file 		= [f for f in listdir if 'BehavEpochs' in f]
+	if len(file) == 0: # Running makeEpochs		
+		makeEpochs(path, episodes, file = 'Epoch_TS.csv')
+		listdir		= os.listdir(filepath)
+		file 		= [f for f in listdir if 'BehavEpochs' in f]
+	if file[0] == 'BehavEpochs.h5':
 		new_file = os.path.join(filepath, 'BehavEpochs.h5')
 		store 		= pd.HDFStore(new_file, 'r')
 		if '/'+epoch in store.keys():
@@ -341,59 +378,172 @@ def loadEpoch(path, epoch):
 					stop = np.where(index == -1)[0]
 					return nts.IntervalSet(start, stop, time_units = 's', expect_fix=True).drop_short_intervals(0.0)
 
-def loadPosition(path, file, ep = None, names = ['x', 'y', 'ry', 'rx', 'rz']):
-	"""
-	load the position from the csv file contains in path
+def loadPosition(path, events, episodes, n_ttl_channels = 1, optitrack_ch = None, names = ['ry', 'rx', 'rz', 'x', 'y', 'z'], update_wake_epoch = True):
+    """
+    load the position contained in /Analysis/Position.h5
 
-	Notes:
-		The order of the columns in the csv file is assumed to be
-			['x', 'y', 'ry', 'rx', 'rz']	
+    Notes:
+        The order of the columns is assumed to be
+            ['ry', 'rx', 'rz', 'x', 'y', 'z']
+    Args:
+        path: string
+        
+    Returns:
+        neuroseries.TsdFrame
+    """        
+    if not os.path.exists(path): # Checking for path
+        print("The path "+path+" doesn't exist; Exiting ...")
+        sys.exit()
+    new_path = os.path.join(path, 'Analysis')
+    if not os.path.exists(new_path): os.mkdir(new_path)
+    file = os.path.join(path, 'Analysis', 'Position.h5')
+    if not os.path.exists(file):
+        makePositions(path, events, episodes, n_ttl_channels, optitrack_ch, names, update_wake_epoch)
+    if os.path.exists(file):
+    	store = pd.HDFStore(file, 'r')
+    	position = store['position']
+    	store.close()
+    	position = nts.TsdFrame(t = position.index.values, d = position.values, columns = position.columns, time_units = 's')
+    	return position
+    else:
+    	print("Cannot find "+file+" for loading position")
+    	sys.exit()    	
+
+def loadTTLPulse(file, n_ttl_channels = 1, optitrack_ch = None, fs = 20000):
+    """
+        load ttl from analogin.dat
+    """
+    f = open(file, 'rb')
+    startoffile = f.seek(0, 0)
+    endoffile = f.seek(0, 2)
+    bytes_size = 2        
+    n_samples = int((endoffile-startoffile)/n_ttl_channels/bytes_size)
+    f.close()
+    with open(file, 'rb') as f:
+        data = np.fromfile(f, np.uint16).reshape((n_samples, n_ttl_channels))
+    if optitrack_ch:
+    	data = data[:,optitrack_ch].astype(np.int32)
+    else:
+    	data = data.flatten().astype(np.int32)
+    peaks,_ = scipy.signal.find_peaks(np.diff(data), height=30000)
+    timestep = np.arange(0, len(data))/fs
+    # analogin = pd.Series(index = timestep, data = data)
+    peaks+=1
+    ttl = pd.Series(index = timestep[peaks], data = data[peaks])    
+    return ttl
+
+def loadAuxiliary(path, fs = 20000):
+	"""
+	Extract the acceleration from the auxiliary.dat for each epochs
+
+	Args:
+	    path: string
+	    epochs_ids: list        
+	Return: 
+	    TsdArray
+	""" 	
+	if not os.path.exists(path):
+		print("The path "+path+" doesn't exist; Exiting ...")
+		sys.exit()
+	if 'Acceleration.h5' in os.listdir(os.path.join(path, 'Analysis')):
+		accel_file = os.path.join(path, 'Analysis', 'Acceleration.h5')
+		store = pd.HDFStore(accel_file, 'r')
+		accel = store['acceleration'] 
+		store.close()
+		return accel
+	else:
+		aux_files = np.sort([f for f in os.listdir(path) if 'auxiliary' in f])
+		if len(aux_files)==0:
+			print("Could not find "+f+'_auxiliary.dat; Exiting ...')
+			sys.exit()
+
+		accel = []
+		sample_size = []
+		for i, f in enumerate(aux_files):
+			new_path 	= os.path.join(path, f)
+			f 			= open(new_path, 'rb')
+			startoffile = f.seek(0, 0)
+			endoffile 	= f.seek(0, 2)
+			bytes_size 	= 2
+			n_samples 	= int((endoffile-startoffile)/3/bytes_size)
+			duration 	= n_samples/fs		
+			f.close()
+			tmp 		= np.fromfile(open(new_path, 'rb'), np.uint16).reshape(n_samples,3)
+			accel.append(tmp)
+			sample_size.append(n_samples)
+
+		accel = np.concatenate(accel)	
+		factor = 37.4e-6
+		# timestep = np.arange(0, len(accel))/fs
+		# accel = pd.DataFrame(index = timestep, data= accel*37.4e-6)
+		tmp = scipy.signal.resample_poly(accel*factor, 1, 16)
+		timestep = np.arange(0, len(tmp))/(fs/16)
+		tmp = pd.DataFrame(index = timestep, data = tmp)
+		accel_file = os.path.join(path, 'Analysis', 'Acceleration.h5')
+		store = pd.HDFStore(accel_file, 'w')
+		store['acceleration'] = tmp
+		store.close()
+		return tmp
+
+def downsampleDatFile(path, n_channels = 32, fs = 20000):
+	"""
+	downsample .dat file to .eeg 1/16 (20000 -> 1250 Hz)
+	
+	Since .dat file can be very big, the strategy is to load one channel at the time,
+	downsample it, and free the memory.
+
 	Args:
 		path: string
-		epoch: string
-
-	Returns:
-		neuroseries.IntervalSet
-	"""		
+		n_channel: int
+		fs: int
+	Return: 
+		none
+	"""	
 	if not os.path.exists(path):
 		print("The path "+path+" doesn't exist; Exiting ...")
-		sys.exit()		
-	if '.csv' not in file:
-		print("The file is not .csv; The wrappers does not support other format yet; Exiting ...")
 		sys.exit()
-	position = pd.read_csv(os.path.join(path, 'Tracking_data.csv'), header = None, index_col = 0, names = names)
-	position = position[~position.index.duplicated(keep='first')]
-	position = nts.TsdFrame(t = position.index.values, d = position.values, time_units = 's', columns = names)
-	position[['ry', 'rx', 'rz']] *= (np.pi/180)
-	position[['ry', 'rx', 'rz']] += 2*np.pi
-	position[['ry', 'rx', 'rz']] %= 2*np.pi
-	if ep is not None:
-		position = position.restrict(ep)
-	return position
+	listdir 	= os.listdir(path)
+	datfile 	= os.path.basename(path) + '.dat'
+	if datfile not in listdir:
+		print("Folder contains no " + datfile + " file; Exiting ...")
+		sys.exit()
 
-def loadTTLPulse(path, n_channels = 2, fs = 20000, file = 'analogin.dat'):
-	if not os.path.exists(path):
-		print("The path "+path+" doesn't exist; Exiting ...")
-		sys.exit()		
-	files = os.listdir(path)
-	if 'analogin.dat' not in files:
-		print("Couldn't find the analogin.dat file; Exiting ...")
+	new_path = os.path.join(path, datfile)
 
-	new_file = os.path.join(path, 'analogin.dat')
-	f = open(new_file, 'rb')
+	f 			= open(new_path, 'rb')
 	startoffile = f.seek(0, 0)
-	endoffile = f.seek(0, 2)
-	bytes_size = 2		
-	n_samples = int((endoffile-startoffile)/n_channels/bytes_size)
-	duration = n_samples/fs
-	interval = 1/fs
+	endoffile 	= f.seek(0, 2)
+	bytes_size 	= 2
+	n_samples 	= int((endoffile-startoffile)/n_channels/bytes_size)
+	duration 	= n_samples/fs
 	f.close()
-	with open(new_file, 'rb') as f:
-		data = np.fromfile(f, np.uint16).reshape((n_samples, n_channels))
-	timestep = np.arange(0, len(data))/fs
-	print("Assuming two channels here and taking the second one")
-	return pd.Series(index = timestep, data = data[:,1])
 
+	chunksize 	= 100000
+	eeg 		= np.zeros((int(n_samples/16),n_channels), dtype = np.int16)
+
+	for n in range(n_channels):
+		# Loading		
+		rawchannel = np.zeros(n_samples, np.int16)
+		count = 0
+		while count < n_samples:
+			f 			= open(new_path, 'rb')
+			seekstart 	= count*n_channels*bytes_size
+			f.seek(seekstart)
+			block 		= np.fromfile(f, np.int16, n_channels*np.minimum(chunksize, n_samples-count))
+			f.close()
+			block 		= block.reshape(np.minimum(chunksize, n_samples-count), n_channels)
+			rawchannel[count:count+np.minimum(chunksize, n_samples-count)] = np.copy(block[:,n])
+			count 		+= chunksize
+		# Downsampling		
+		eeg[:,n] 	= scipy.signal.resample_poly(rawchannel, 1, 16).astype(np.int16)
+		del rawchannel
+	
+	# Saving
+	eeg_path 	= os.path.join(path, os.path.splitext(datfile)[0]+'.eeg')
+	with open(eeg_path, 'wb') as f:
+		eeg.tofile(f)
+		
+	return
 
 ##########################################################################################################
 # TODO
@@ -490,3 +640,4 @@ def loadBunch_Of_LFP(path,  start, stop, n_channels=90, channel=64, frequency=12
 	elif type(channel) is list:
 		timestep = np.arange(0, len(data))/frequency		
 		return nts.TsdFrame(timestep, data[:,channel], time_units = 's')
+

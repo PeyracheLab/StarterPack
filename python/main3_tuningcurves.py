@@ -111,8 +111,8 @@ show()
 position_spike = position.realign(spikes)
 xbins = np.linspace(xpos.min(), xpos.max()+0.01, 10)
 ybins = np.linspace(ypos.min(), ypos.max()+0.01, 10)
-spike_count2,_,_ = np.histogram2d(position_spike['y'], position_spike['x'], [xbins,ybins])
-occupancy2, _, _ = np.histogram2d(position['y'], position['x'], [xbins,ybins])
+spike_count2,_,_ = np.histogram2d(position_spike['y'], position_spike['x'], [ybins,xbins])
+occupancy2, _, _ = np.histogram2d(position['y'], position['x'], [ybins,xbins])
 spike_count2 = spike_count2/(occupancy2+1)
 place_field = spike_count2/dt
 
@@ -126,7 +126,14 @@ place_field = pd.DataFrame(index = xbins[0:-1]+np.diff(xbins)/2,
 figure()
 subplot(211)
 plot(position['x'], position['y'], alpha = 0.5)
-scatter(position_spike['x'], position_spike['y'], color = 'red')
+scatter(position_spike['x'], position_spike['y'], color = 'red', alpha = 0.5, edgecolor = None)
+for i in xbins: axvline(i)
+for i in ybins: axhline(i)
+xlim(xbins[0], xbins[-1])
+ylim(ybins[0], ybins[-1])
+
 subplot(212)
-imshow(place_field, origin = 'lower')
+imshow(place_field, origin = 'lower', aspect= 'auto')
+# imshow(spike_count2, origin = 'lower', aspect= 'auto')
+
 show()
