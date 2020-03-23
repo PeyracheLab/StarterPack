@@ -155,7 +155,10 @@ class IntervalSet(pd.DataFrame):
         df.reset_index(inplace=True, drop=True)
         df['cumsum'] = df['start_end'].cumsum()
         # noinspection PyTypeChecker
-        ix_stop = np.nonzero(df['cumsum'] == 0)[0]
+        #ix_stop = np.nonzero(df['cumsum'] == 0)[0]
+        ###################################################################################
+        ix_stop = (df['cumsum']==0).to_numpy().nonzero()[0]
+        ###################################################################################
         ix_start = np.hstack((0, ix_stop[:-1]+1))
         start = df['time'][ix_start]
         stop = df['time'][ix_stop]
@@ -182,7 +185,10 @@ class IntervalSet(pd.DataFrame):
         df.reset_index(inplace=True, drop=True)
         df['cumsum'] = df['start_end'].cumsum()
         # noinspection PyTypeChecker
-        ix = np.nonzero(df['cumsum'] == 1)[0]
+        #ix = np.nonzero(df['cumsum'] == 1)[0] # CHANGED BY G.VIEJO 22/04/2020        
+        ###################################################################################        
+        ix = (df['cumsum']==1).to_numpy().nonzero()[0]        
+        ################################################################################### 
         start = df['time'][ix]
         # noinspection PyTypeChecker
         end = df['time'][ix+1]
