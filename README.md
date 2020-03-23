@@ -21,6 +21,7 @@
 - matplotlib
 - numba
 - pycircstats
+- pytables
 - neuroseries (It's best to use version located inside the StarterPack)
 
 ## Example data
