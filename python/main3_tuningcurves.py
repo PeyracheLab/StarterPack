@@ -117,8 +117,8 @@ spike_count2 = spike_count2/(occupancy2+1)
 place_field = spike_count2/dt
 
 # Let's put that in a nice dataframe
-place_field = pd.DataFrame(index = xbins[0:-1]+np.diff(xbins)/2,
-							columns = ybins[0:-1]+np.diff(ybins)/2,
+place_field = pd.DataFrame(index = ybins[0:-1]+np.diff(ybins)/2,
+							columns = xbins[0:-1]+np.diff(xbins)/2,
 							data = place_field)
 
 
