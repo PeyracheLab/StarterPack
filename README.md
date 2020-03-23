@@ -21,7 +21,7 @@
 - matplotlib
 - numba
 - pycircstats
-- [neuroseries](https://github.com/PeyracheLab/neuroseries)
+- neuroseries (It's best to use version located inside the StarterPack)
 
 ## Example data
 
