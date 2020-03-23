@@ -22,6 +22,7 @@
 - numba
 - pycircstats
 - pytables
+- nose
 - neuroseries (It's best to use version located inside the StarterPack)
 
 ## Example data
