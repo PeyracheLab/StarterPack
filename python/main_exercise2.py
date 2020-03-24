@@ -110,7 +110,8 @@ h = 0.001
 
 
 ###############################################################################
-# 16 If you code is correct, the plot should look like this :
+# 16 If you code is correct by running the entire script at once, 
+# the figure should look like this :
 # https://www.dropbox.com/s/c58an08h235ztcj/figure_exercise2.png?dl=1
 # Congrats, you have simulated a Hopf bifurcation :
 # https://en.wikipedia.org/wiki/Hopf_bifurcation
