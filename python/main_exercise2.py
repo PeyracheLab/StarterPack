@@ -84,13 +84,13 @@ h = 0.001
 
 
 	###############################################################################
-	# 13 Using the iterator i, assign at the ith posiiton in the first column the value r
+	# 13 Using the iterator i, assign at the ith posiiton in the first column of data the value r
 	# Remember in python, array indexing start at 0
 	###############################################################################
 
 	
 	###############################################################################
-	# 14 same for phi, cosphi, sinphi and sigma for columns 2, 3, 4 and 5
+	# 14 same for phi, cosphi, sinphi and sigma for columns 2, 3, 4 and 5 of data
 	###############################################################################
 
 
