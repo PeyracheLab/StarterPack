@@ -14,11 +14,6 @@
 ###############################################################################
 import scipy.stats
 
-import numpy as np
-from pylab import *
-import pandas as pd
-import neuroseries as nts
-from functions import *
 
 ###############################################################################
 # 2. Some data. Run it in the terminal after importing librairies
@@ -40,9 +35,7 @@ tuning_curves.index = pd.Index(np.linspace(0, 2*np.pi, n+1)[0:-1])
 # Your plot should look like this : 
 # https://www.dropbox.com/s/8mu7i1halsahyeq/figure_exercise4_1.png?dl=1
 ###############################################################################
-figure()
-subplot(111,projection = 'polar')
-plot(tuning_curves)
+
 
 ###############################################################################
 # 4. Supernova died and your rig burned. You have lost the spikes. Fortunately 
@@ -67,8 +60,7 @@ wake_ep = nts.IntervalSet(start = [td[0]/fs], end = [(td[0]+td[1])/fs], time_uni
 # Start by defining the variables that will receive the spikes (i.e. a dict with lists inside
 # accessible with the neuron number)
 ###############################################################################
-spikes = {n:[] for n in neurons}
-tmp = angles.restrict(wake_ep)
+
 
 ###############################################################################
 # 6. The easiest way is to do a double loop. The first loop should be over 
@@ -76,7 +68,7 @@ tmp = angles.restrict(wake_ep)
 # spike times according to the preferred direction of the neurons
 # So start with the loop. Remember the epochs
 ###############################################################################
-for t, a in zip(tmp.index, tmp.values):	
+
 
 	###############################################################################
 	# 7. Now the goal is to obtain firing rate as a function of the tunig curves
@@ -84,8 +76,7 @@ for t, a in zip(tmp.index, tmp.values):
 	# So something like : angle(time step) -> tuning_curves -> firing rate
 	# Try to get it for all neurons at once. It's gonna speed up your code
 	###############################################################################
-	fr = tuning_curves.iloc[tuning_curves.index.get_loc(a, method = 'nearest')]
-	# fr[fr < 0.001] = 0.0
+
 
 	###############################################################################
 	# 8. You have instantiated the variable fr as the firing rates for the time step t
@@ -97,7 +88,7 @@ for t, a in zip(tmp.index, tmp.values):
 	# Hint : np.random.poisson([1,0,5]) will return you an array of the same size.
 	# each element of [1,0,5] being firing rate of one neuron (i.e 1Hz, 0Hz, 5Hz) 
 	###############################################################################
-	n_spikes = np.random.poisson(fr.values*(1/fs))
+
 
 
 	###############################################################################
@@ -110,8 +101,6 @@ for t, a in zip(tmp.index, tmp.values):
 	# the spike times to the spikes list dictionnary defined outside of the two loops
 	# Mind the time units
 	###############################################################################
-	for n in tuning_curves.columns:
-		spikes[n].append(np.random.uniform(t, t + (1/fs) * 1e6, n_spikes[n]))
 		
 		
 
@@ -122,8 +111,6 @@ for t, a in zip(tmp.index, tmp.values):
 # So loop over each element of your dictionnary and make a Ts oject
 # Mind the time units again
 ###############################################################################
-for  n in neurons: 
-	spikes[n] = nts.Ts(np.hstack(spikes[n]))
 
 ###############################################################################
 # 12. Now that you have some spikes for each neuron, you can see if they match their tuning curves
@@ -132,7 +119,8 @@ for  n in neurons:
 # You can use the function computeAngularTuningCurves in functions.py
 # Mind the parameters to call the function
 ###############################################################################
-tuning_curves2 = computeAngularTuningCurves(spikes, angles, wake_ep, nb_bins = 60, frequency = fs)
+
+
 
 ###############################################################################
 # 7. Making a grid of subplot (i.e 3 times 4 for example), plot the first and 
@@ -140,11 +128,6 @@ tuning_curves2 = computeAngularTuningCurves(spikes, angles, wake_ep, nb_bins = 6
 # Your plot should look like this :
 # https://www.dropbox.com/s/lfdwewmc9tc802w/figure_exercise4_2.png?dl=1
 ###############################################################################
-figure()
-for i, n in enumerate(spikes):
-	subplot(4,4,i+1)
-	plot(tuning_curves[n])
-	plot(tuning_curves2[n])
 
 
 ###############################################################################
@@ -156,8 +139,8 @@ for i, n in enumerate(spikes):
 # with the same bins
 # Start by defining the bins boundaries that spans the wake epoch in the time units you want
 ###############################################################################
-bin_size = 300
-bins = np.arange(wake_ep.as_units('ms').start.iloc[0], wake_ep.as_units('ms').end.iloc[-1], bin_size)
+
+
 
 ###############################################################################
 # 8. Bins the spike of each neuron (using a loop).
@@ -165,17 +148,16 @@ bins = np.arange(wake_ep.as_units('ms').start.iloc[0], wake_ep.as_units('ms').en
 # You should obtain a pandas dataframe with index the timestep and columns the neuron number
 # Each element of the dataframe should be equal to a spike count for one neuron over one time step
 ###############################################################################
-spike_counts = pd.DataFrame(index = bins[0:-1]+np.diff(bins)/2, columns = tuning_curves.columns)
-for i in neurons:
-	spks = spikes[i].as_units('ms').index.values
-	spike_counts[i], _ = np.histogram(spks, bins)
+
+
 
 ###############################################################################
 # 9. Transform your spike counts into the square root of a rate values by dividing by the bin size
 # It appears that manifold projection works better with square root of firing rate
 # Call your new variable rate_wake
 ###############################################################################
-rate_wake = np.sqrt(spike_counts/(bin_size*1e-3))
+
+
 
 ###############################################################################
 # 10. If you want to show the color code of your manifold you should bin the angle
@@ -185,15 +167,13 @@ rate_wake = np.sqrt(spike_counts/(bin_size*1e-3))
 # Make sure at the end of this step that your new wake angle is the same size
 # as the rate array computed before
 ###############################################################################
-wakangle = pd.Series(index = np.arange(len(bins)-1))
-tmp = angles.groupby(np.digitize(angles.as_units('ms').index.values, bins)-1).mean()
-wakangle.loc[wakangle.index] = tmp.iloc[wakangle.index]
-wakangle.index = pd.Index(bins[0:-1] + np.diff(bins)/2.)
+
+
 
 ###############################################################################
 # 10. The next steps are given to help you.
 # It imports UMAP to compute the manifold provided that you already installed it.
-# If you called you new angles array as wakangle as a pandas series for exemple, 
+# If you called your new downsampled serie angles as wakangle as a pandas series for exemple, 
 # it will compute the RGB colors of each time point during wake
 ###############################################################################
 from umap import UMAP
@@ -209,10 +189,15 @@ RGB = hsv_to_rgb(HSV)
 ####################################################################################################################
 # 11 The next step are given as well. It consists of smoothing slightly the squared root of the firign rate
 # Make sure the variable is called rate_wake and that it is a pandas dataframe
-# THe call to UMAP is given as well
 ####################################################################################################################
 tmp = rate_wake.rolling(window=10,win_type='gaussian',center=True,min_periods=1, axis = 0).mean(std=1).values
-ump = UMAP(n_neighbors = 100).fit_transform(tmp)
+
+
+####################################################################################################################
+# 12 Now you can call UMAP over the variable tmp. Use a number of neighbors of 100
+# The output of UMAP should be called ump
+####################################################################################################################
+
 
 ####################################################################################################################
 # 12 Now you can plot the manifold. 
@@ -222,9 +207,8 @@ ump = UMAP(n_neighbors = 100).fit_transform(tmp)
 # You should obtain this :
 # https://www.dropbox.com/s/ptfqw2c9l7v520j/figure_exercise4_3.png?dl=1
 ####################################################################################################################
-figure()
-scatter(ump[:,0].flatten(), ump[:,1].flatten(), c= RGB, marker = 'o', alpha = 0.5, linewidth = 0, s = 100)
-show()
+
+
 
 ####################################################################################################################
 # 13 Final step is to do the ring decoding
@@ -235,14 +219,6 @@ show()
 # and in which direction it's supposed to turn
 # So there is an offset angle you should compute so that the two angles series match
 # You should obtain something like this :
-# 
+# https://www.dropbox.com/s/vju7myi02nhl8s9/figure_exercise4_4.png?dl=1
 ####################################################################################################################
-decodedangle = pd.Series(index = wakangle.index, data = np.arctan2(ump[:,1], ump[:,0]))
-decodedangle += np.abs(wakangle.iloc[0] - decodedangle.iloc[0])
-decodedangle += (2*np.pi)
-decodedangle %= (2*np.pi)
 
-figure()
-plot(wakangle)
-plot(decodedangle)
-show()
