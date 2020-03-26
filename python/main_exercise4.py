@@ -108,7 +108,7 @@ wake_ep = nts.IntervalSet(start = [td[0]/fs], end = [(td[0]+td[1])/fs], time_uni
 # 11. You are now outside of the loop. For one neuron within you spike list dictionnary, 
 # you have a list of spike times. You should concatenate them
 # and make a nice array, put it in a Ts object.
-# So loop over each element of your dictionnary and make a Ts oject
+# So loop over each element of your dictionnary and make Ts ojects for each neuron
 # Mind the time units again
 ###############################################################################
 
