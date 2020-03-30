@@ -128,7 +128,10 @@ class IntervalSet(pd.DataFrame):
         df.reset_index(inplace=True, drop=True)
         df['cumsum'] = df['start_end'].cumsum()
         # noinspection PyTypeChecker
-        ix = np.nonzero(df['cumsum'] == n_sets)[0]
+        # ix = np.nonzero(df['cumsum'] == n_sets)[0]
+        ###################################################################################
+        ix = (df['cumsum']==n_sets).to_numpy().nonzero()[0]
+        ###################################################################################
         start = df['time'][ix]
         # noinspection PyTypeChecker
         end = df['time'][ix+1]
