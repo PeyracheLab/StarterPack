@@ -516,10 +516,10 @@ def loadTTLPulse(file, n_ttl_channels = 1, optitrack_ch = None, fs = 20000):
 	f.close()
 	with open(file, 'rb') as f:
 		data = np.fromfile(f, np.uint16).reshape((n_samples, n_ttl_channels))
-	if optitrack_ch:
-		data = data[:,optitrack_ch].astype(np.int32)
-	else:
+	if n_ttl_channels == 1:
 		data = data.flatten().astype(np.int32)
+	else:
+		data = data[:,optitrack_ch].flatten().astype(np.int32)
 
 	peaks,_ = scipy.signal.find_peaks(np.diff(data), height=30000)
 	timestep = np.arange(0, len(data))/fs
